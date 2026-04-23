@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #06030f;
+  --bg2: #0e0820;
+  --gold: #c9922a;
+  --gold-l: #e8bc60;
+  --gold-d: #7a560f;
+  --crimson: #8b1535;
+  --purple: #4a2070;
+  --text: #ede4ce;
+  --text-dim: #8a7a60;
+  --border: rgba(201,146,42,0.25);
+}
+
+html, body { height: 100%; background: var(--bg); }
+body { font-family: 'Nanum Myeongjo', serif; color: var(--text); overflow: hidden; -webkit-font-smoothing: antialiased; }
+#root { width: 100%; height: 100dvh; display: flex; justify-content: center; align-items: stretch; }
+
+/* Stars */
+.stars { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.star { position: absolute; border-radius: 50%; background: var(--gold-l); opacity: 0; animation: twinkle var(--d) var(--delay) infinite; }
+@keyframes twinkle { 0%,100%{opacity:0;transform:scale(0.5)} 50%{opacity:var(--op);transform:scale(1)} }
+
+/* App container */
+.saju-app { width: 100%; max-width: 430px; height: 100dvh; position: relative; overflow: hidden; background: var(--bg); }
+
+/* Screen transitions */
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; transition: transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s; overflow-y: auto; overflow-x: hidden; }
+.screen.active    { transform: translateX(0);     opacity: 1; z-index: 2; }
+.screen.exit-left { transform: translateX(-100%); opacity: 0; z-index: 1; pointer-events: none; }
+.screen.enter-right { transform: translateX(100%); opacity: 0; z-index: 1; pointer-events: none; }
+
+/* Oracle ring */
+.oracle-ring { border-radius: 50%; position: relative; flex-shrink: 0; box-shadow: 0 0 30px rgba(201,146,42,0.5), 0 0 60px rgba(139,21,53,0.3), inset 0 0 20px rgba(0,0,0,0.5); animation: float 4s ease-in-out infinite; }
+.oracle-ring::before { content: ''; position: absolute; border-radius: 50%; border: 1.5px solid var(--gold); opacity: 0.6; animation: halo 3s ease-in-out infinite; }
+.oracle-ring::after  { content: ''; position: absolute; border-radius: 50%; border: 1px solid var(--crimson); opacity: 0.3; animation: halo 3s ease-in-out infinite reverse; }
+.oracle-ring.lg { width: 180px; height: 180px; }
+.oracle-ring.sm { width: 52px;  height: 52px; }
+.oracle-ring.lg::before { inset: -10px; }
+.oracle-ring.lg::after  { inset: -18px; }
+.oracle-ring.sm::before { inset: -4px; }
+.oracle-ring.sm::after  { inset: -8px; }
+@keyframes halo  { 0%,100%{opacity:0.4;transform:scale(1)} 50%{opacity:0.9;transform:scale(1.04)} }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.oracle-face { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; }
+.oracle-face img { width: 100%; height: 100%; object-fit: cover; object-position: center 8%; }
+
+/* Oracle bust */
+.oracle-bust { position: relative; flex-shrink: 0; width: 260px; height: 340px; animation: float 4s ease-in-out infinite; filter: drop-shadow(0 0 24px rgba(201,146,42,0.4)) drop-shadow(0 0 48px rgba(139,21,53,0.25)); }
+.oracle-bust img { width: 100%; height: 100%; object-fit: cover; object-position: center 5%; border-radius: 24px 24px 60% 60% / 24px 24px 40% 40%; }
+.oracle-bust::before { content: ''; position: absolute; inset: -2px; border-radius: 26px 26px 62% 62% / 26px 26px 42% 42%; border: 1.5px solid var(--gold); opacity: 0.5; animation: halo 3s ease-in-out infinite; pointer-events: none; }
+
+/* Sparks */
+.oracle-particles { position: absolute; inset: -20px; pointer-events: none; }
+.oracle-spark { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--gold-l); animation: spark var(--d) var(--delay) ease-in-out infinite; opacity: 0; }
+@keyframes spark { 0%,100%{opacity:0;transform:translateY(0) scale(0.5)} 40%{opacity:0.9;transform:translateY(-20px) scale(1)} 80%{opacity:0;transform:translateY(-40px) scale(0.3)} }
+
+/* Bubbles */
+.oracle-bubble    { background: rgba(74,32,112,0.3); border: 1px solid var(--border); border-radius: 0 16px 16px 16px; padding: 14px 18px; max-width: 85%; margin-top: 16px; }
+.oracle-bubble p  { font-size: 15px; line-height: 1.8; color: var(--text); }
+.oracle-bubble-sm { background: rgba(74,32,112,0.25); border: 1px solid var(--border); border-radius: 0 12px 12px 12px; padding: 10px 14px; flex: 1; font-size: 13px; line-height: 1.6; color: var(--text-dim); }
+.cursor { display: inline-block; width: 2px; height: 14px; background: var(--gold); animation: blink 0.8s infinite; vertical-align: middle; margin-left: 2px; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* Buttons */
+.btn-gold { background: linear-gradient(135deg, var(--gold-d), var(--gold), var(--gold-l), var(--gold)); background-size: 200% 200%; animation: shimmer 3s ease infinite; border: none; border-radius: 50px; color: #1a0a02; font-family: 'Nanum Myeongjo', serif; font-size: 16px; font-weight: 700; padding: 16px 48px; cursor: pointer; box-shadow: 0 4px 24px rgba(201,146,42,0.4); letter-spacing: 1px; transition: transform 0.2s, box-shadow 0.2s; }
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(201,146,42,0.6); }
+.btn-gold:active { transform: translateY(0); }
+.btn-gold:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+@keyframes shimmer { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+.btn-ghost { background: transparent; border: 1px solid var(--border); border-radius: 50px; color: var(--text-dim); font-family: 'Nanum Myeongjo', serif; font-size: 14px; padding: 10px 28px; cursor: pointer; transition: all 0.2s; }
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+
+/* Forms */
+.form-label { font-size: 11px; letter-spacing: 2px; color: var(--gold); text-transform: uppercase; margin-bottom: 8px; display: block; }
+.form-input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'Nanum Myeongjo', serif; font-size: 15px; padding: 14px 16px; transition: border-color 0.2s; outline: none; -webkit-appearance: none; }
+.form-input:focus { border-color: var(--gold); background: rgba(201,146,42,0.06); }
+.form-input::placeholder { color: var(--text-dim); }
+select.form-input option { background: #0e0820; }
+.form-textarea { resize: none; height: 100px; line-height: 1.6; }
+.radio-btn { flex: 1; padding: 12px; border: 1px solid var(--border); border-radius: 10px; text-align: center; cursor: pointer; font-size: 14px; transition: all 0.2s; background: rgba(255,255,255,0.02); color: var(--text-dim); }
+.radio-btn.sel { border-color: var(--gold); background: rgba(201,146,42,0.1); color: var(--gold-l); }
+
+/* Cards */
+.card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+.card-title { font-size: 12px; letter-spacing: 2px; color: var(--gold); margin-bottom: 12px; }
+.card p { font-size: 14px; line-height: 1.9; color: var(--text-dim); }
+.card p b { color: var(--text); }
+.section-title { font-size: 11px; letter-spacing: 3px; color: var(--gold); margin-bottom: 20px; text-align: center; font-family: 'Cinzel', serif; }
+
+/* Ohaeng */
+.ohaeng-circle { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; position: relative; transition: transform 0.3s; }
+.ohaeng-circle::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 1px solid; opacity: 0.4; }
+.oh-wood  { background: rgba(34,100,34,0.2);   color: #5db85d; border: 1px solid rgba(93,184,93,0.3); }
+.oh-wood::after  { border-color: #5db85d; }
+.oh-fire  { background: rgba(180,40,20,0.2);   color: #e05535; border: 1px solid rgba(224,85,53,0.3); }
+.oh-fire::after  { border-color: #e05535; }
+.oh-earth { background: rgba(160,130,0,0.2);   color: #c8a830; border: 1px solid rgba(200,168,48,0.3); }
+.oh-earth::after { border-color: #c8a830; }
+.oh-metal { background: rgba(180,180,200,0.15); color: #b8bcd4; border: 1px solid rgba(184,188,212,0.3); }
+.oh-metal::after { border-color: #b8bcd4; }
+.oh-water { background: rgba(20,60,160,0.2);   color: #5588e8; border: 1px solid rgba(85,136,232,0.3); }
+.oh-water::after { border-color: #5588e8; }
+.ohaeng-bar-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+.ohaeng-bar-fill  { height: 100%; border-radius: 99px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+
+/* Pillars */
+.pillars { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 24px; }
+.pillar  { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 14px 8px; text-align: center; }
+.pillar-name   { font-size: 10px; letter-spacing: 1px; color: var(--gold); margin-bottom: 10px; }
+.pillar-stem   { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+.pillar-branch { font-size: 22px; color: var(--text-dim); }
+.pillar-label  { font-size: 9px; color: var(--text-dim); opacity: 0.6; margin-top: 2px; }
+
+/* Fortune score */
+.score-dot { width: 8px; height: 8px; border-radius: 50%; }
+.score-dot.on  { background: var(--gold); }
+.score-dot.off { background: rgba(255,255,255,0.1); }
+
+/* Bottom nav */
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; padding: 16px 20px 32px; background: linear-gradient(to top, rgba(6,3,15,1) 60%, transparent); display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+.progress-dots { display: flex; gap: 5px; }
+.progress-dot  { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: all 0.3s; }
+.progress-dot.active { background: var(--gold); width: 18px; border-radius: 3px; }
+
+/* Loading */
+.loading-orb { width: 80px; height: 80px; border-radius: 50%; position: relative; }
+.loading-orb::before, .loading-orb::after { content: ''; position: absolute; border-radius: 50%; border: 2px solid transparent; }
+.loading-orb::before { inset: 0;  border-top-color: var(--gold);    animation: spin 1.2s linear infinite; }
+.loading-orb::after  { inset: 8px; border-top-color: var(--crimson); animation: spin 0.8s linear infinite reverse; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Chat */
+.chat-messages { flex: 1; overflow-y: auto; padding: 16px 16px 0; display: flex; flex-direction: column; gap: 12px; }
+.chat-bubble { padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.7; }
+.chat-oracle .chat-bubble { background: rgba(74,32,112,0.3); border: 1px solid var(--border); border-radius: 0 16px 16px 16px; color: var(--text); }
+.chat-user   .chat-bubble { background: linear-gradient(135deg, rgba(201,146,42,0.2), rgba(139,21,53,0.2)); border: 1px solid rgba(201,146,42,0.3); border-radius: 16px 0 16px 16px; color: var(--text); }
+.chat-input  { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 24px; color: var(--text); font-family: 'Nanum Myeongjo', serif; font-size: 14px; padding: 12px 18px; outline: none; }
+.chat-input:focus { border-color: var(--gold); }
+.chat-send { width: 44px; height: 44px; border-radius: 50%; background: var(--gold); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.2s; }
+.chat-send:hover { transform: scale(1.1); }
+
+/* Typing dots */
+.typing-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); margin: 0 2px; animation: tdot 1.2s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tdot { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-6px);opacity:1} }
+
+/* Scroll area */
+.scroll-inner { overflow-y: auto; flex: 1; padding-bottom: 120px; }
+.content-area { padding: 0 20px 100px; flex: 1; }
+.divider { width: 40px; height: 1px; background: var(--gold); opacity: 0.4; margin: 16px auto; }

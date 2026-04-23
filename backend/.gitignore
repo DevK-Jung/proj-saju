@@ -1,0 +1,44 @@
+# 환경변수
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# 가상환경
+.venv/
+venv/
+env/
+
+# uv
+.uv/
+
+# 테스트 / 린터 캐시
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+
+# Claude
+.claude/
+
+# 데이터 / 스크립트 (민감 or 대용량)
+/data/
+/scripts/
+
+# 빌드
+dist/
+build/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
