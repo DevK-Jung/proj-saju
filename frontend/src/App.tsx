@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useSajuStore, UserInfo } from './store/useSajuStore'
+import { useSajuStore, UserInfo, MonthlyFortune } from './store/useSajuStore'
 import { SajuData } from './types/saju'
 
 // ─── Stars ─────────────────────────────────────────────────────────────────
@@ -169,7 +169,56 @@ function InfoScreen({
   onBack: () => void
 }) {
   const up = <K extends keyof UserInfo>(k: K, v: UserInfo[K]) => setUserInfo({ [k]: v } as Partial<UserInfo>)
-  const valid = !!(userInfo.name && userInfo.gender && userInfo.birthYear && userInfo.birthMonth && userInfo.birthDay && userInfo.question)
+
+  // ── 생년월일 단일 입력 ────────────────────────────────────────────────────────
+  // raw: 숫자만 최대 8자리 (YYYYMMDD)
+  const [birthRaw, setBirthRaw] = useState(() => {
+    const { birthYear, birthMonth, birthDay } = userInfo
+    if (!birthYear) return ''
+    return birthYear
+      + (birthMonth ? birthMonth.padStart(2, '0') : '')
+      + (birthDay   ? birthDay.padStart(2, '0')   : '')
+  })
+
+  // 숫자 → "YYYY.MM.DD" 포맷 (입력 중에도 실시간 표시)
+  const formatBirth = (digits: string) => {
+    if (digits.length <= 4) return digits
+    if (digits.length <= 6) return `${digits.slice(0, 4)}.${digits.slice(4)}`
+    return `${digits.slice(0, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`
+  }
+
+  const handleBirthInput = (raw: string) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 8)
+    setBirthRaw(digits)
+    setUserInfo({
+      birthYear:  digits.slice(0, 4),
+      birthMonth: digits.slice(4, 6),
+      birthDay:   digits.slice(6, 8),
+    })
+  }
+
+  // ── 태어난 시간 ─────────────────────────────────────────────────────────────
+  const [timeUnknown, setTimeUnknown] = useState(false)
+  const [ampm,       setAmpm]        = useState<'오전' | '오후'>('오전')
+  const [timeHour,   setTimeHour]    = useState('')
+  const [timeMinute, setTimeMinute]  = useState('')
+  const minuteRef = useRef<HTMLInputElement>(null)
+
+  const syncTime = useCallback(
+    (unknown: boolean, ap: string, h: string, m: string) => {
+      if (unknown || !h) { setUserInfo({ birthTime: '' }); return }
+      let hour = parseInt(h, 10) || 0
+      if (ap === '오후' && hour !== 12) hour += 12
+      if (ap === '오전' && hour === 12) hour = 0
+      const hStr = String(hour).padStart(2, '0')
+      const mStr = (m || '00').padStart(2, '0')
+      setUserInfo({ birthTime: `${hStr}:${mStr}` })
+    },
+    [setUserInfo]
+  )
+
+  // ── 유효성: 이름·성별·생년월일 필수 / 질문 선택 ────────────────────────────
+  const valid = !!(userInfo.name && userInfo.gender && userInfo.birthYear && userInfo.birthMonth && userInfo.birthDay)
 
   return (
     <div className="screen active" style={{ flexDirection: 'column' }}>
@@ -178,11 +227,19 @@ function InfoScreen({
       <div className="scroll-inner" style={{ zIndex: 1 }}>
         <div style={{ padding: '20px 20px 0' }}>
 
+          {/* ── 성함 (최대 5자) ─────────────────────────────────────────────── */}
           <div style={{ marginBottom: 20 }}>
             <label className="form-label">성함</label>
-            <input className="form-input" placeholder="이름을 입력하세요" value={userInfo.name} onChange={e => up('name', e.target.value)} />
+            <input
+              className="form-input"
+              placeholder="이름을 입력하세요"
+              value={userInfo.name}
+              maxLength={5}
+              onChange={e => up('name', e.target.value.slice(0, 5))}
+            />
           </div>
 
+          {/* ── 성별 ─────────────────────────────────────────────────────────── */}
           <div style={{ marginBottom: 20 }}>
             <label className="form-label">성별</label>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -192,39 +249,22 @@ function InfoScreen({
             </div>
           </div>
 
-          <div style={{ marginBottom: 20 }}>
+          {/* ── 생년월일 (단일 입력, YYYY.MM.DD 자동 포맷) ──────────────────── */}
+          <div style={{ marginBottom: 8 }}>
             <label className="form-label">생년월일</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input className="form-input" placeholder="년도 (예: 1995)" type="number" style={{ flex: 2, textAlign: 'center' }}
-                value={userInfo.birthYear} onChange={e => up('birthYear', e.target.value)} maxLength={4} />
-              <input className="form-input" placeholder="월" type="number" style={{ flex: 1, textAlign: 'center' }}
-                value={userInfo.birthMonth} onChange={e => up('birthMonth', e.target.value)} min={1} max={12} />
-              <input className="form-input" placeholder="일" type="number" style={{ flex: 1, textAlign: 'center' }}
-                value={userInfo.birthDay} onChange={e => up('birthDay', e.target.value)} min={1} max={31} />
-            </div>
+            <input
+              className="form-input"
+              type="tel"
+              placeholder="예) 19970101"
+              style={{ textAlign: 'center', letterSpacing: 2 }}
+              value={formatBirth(birthRaw)}
+              maxLength={10}
+              onChange={e => handleBirthInput(e.target.value)}
+            />
           </div>
 
+          {/* ── 양력 / 음력 (생년월일 바로 아래) ───────────────────────────── */}
           <div style={{ marginBottom: 20 }}>
-            <label className="form-label">태어난 시간 (선택)</label>
-            <select className="form-input" value={userInfo.birthTime} onChange={e => up('birthTime', e.target.value)}>
-              <option value="">모름 / 선택 안 함</option>
-              <option value="자시 (子時 23:00~01:00)">자시 子時 · 밤 11시 ~ 새벽 1시</option>
-              <option value="축시 (丑時 01:00~03:00)">축시 丑時 · 새벽 1시 ~ 3시</option>
-              <option value="인시 (寅時 03:00~05:00)">인시 寅時 · 새벽 3시 ~ 5시</option>
-              <option value="묘시 (卯時 05:00~07:00)">묘시 卯時 · 새벽 5시 ~ 7시</option>
-              <option value="진시 (辰時 07:00~09:00)">진시 辰時 · 오전 7시 ~ 9시</option>
-              <option value="사시 (巳時 09:00~11:00)">사시 巳時 · 오전 9시 ~ 11시</option>
-              <option value="오시 (午時 11:00~13:00)">오시 午時 · 오전 11시 ~ 오후 1시</option>
-              <option value="미시 (未時 13:00~15:00)">미시 未時 · 오후 1시 ~ 3시</option>
-              <option value="신시 (申時 15:00~17:00)">신시 申時 · 오후 3시 ~ 5시</option>
-              <option value="유시 (酉時 17:00~19:00)">유시 酉時 · 오후 5시 ~ 7시</option>
-              <option value="술시 (戌時 19:00~21:00)">술시 戌時 · 오후 7시 ~ 9시</option>
-              <option value="해시 (亥時 21:00~23:00)">해시 亥時 · 밤 9시 ~ 11시</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <label className="form-label">음양력</label>
             <div style={{ display: 'flex', gap: 10 }}>
               {(['양력', '음력'] as const).map(c => (
                 <div key={c} className={`radio-btn${userInfo.calendar === c ? ' sel' : ''}`} onClick={() => up('calendar', c)}>{c}</div>
@@ -232,6 +272,86 @@ function InfoScreen({
             </div>
           </div>
 
+          {/* ── 태어난 시간 ──────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <label className="form-label" style={{ margin: 0 }}>태어난 시간</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-dim)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={timeUnknown}
+                  style={{ width: 15, height: 15, accentColor: 'var(--gold)', cursor: 'pointer' }}
+                  onChange={e => {
+                    setTimeUnknown(e.target.checked)
+                    syncTime(e.target.checked, ampm, timeHour, timeMinute)
+                  }}
+                />
+                모름
+              </label>
+            </div>
+
+            {!timeUnknown && (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {/* 오전 / 오후 토글 */}
+                <div style={{
+                  display: 'flex', flexShrink: 0, overflow: 'hidden',
+                  border: '1px solid var(--border)', borderRadius: 8,
+                }}>
+                  {(['오전', '오후'] as const).map(ap => (
+                    <button
+                      key={ap}
+                      type="button"
+                      onClick={() => { setAmpm(ap); syncTime(false, ap, timeHour, timeMinute) }}
+                      style={{
+                        padding: '10px 13px', fontSize: 13, border: 'none', cursor: 'pointer',
+                        background: ampm === ap ? 'rgba(201,146,42,0.2)' : 'transparent',
+                        color: ampm === ap ? 'var(--gold)' : 'var(--text-dim)',
+                        transition: 'background 0.2s',
+                      }}
+                    >
+                      {ap}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 시 입력 */}
+                <input
+                  className="form-input"
+                  type="tel"
+                  placeholder="00"
+                  style={{ flex: 1, textAlign: 'center' }}
+                  value={timeHour}
+                  maxLength={2}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 2)
+                    setTimeHour(v)
+                    syncTime(false, ampm, v, timeMinute)
+                    if (v.length === 2) minuteRef.current?.focus()
+                  }}
+                />
+                <span style={{ color: 'var(--text-dim)', fontSize: 13, flexShrink: 0 }}>시</span>
+
+                {/* 분 입력 */}
+                <input
+                  ref={minuteRef}
+                  className="form-input"
+                  type="tel"
+                  placeholder="00"
+                  style={{ flex: 1, textAlign: 'center' }}
+                  value={timeMinute}
+                  maxLength={2}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 2)
+                    setTimeMinute(v)
+                    syncTime(false, ampm, timeHour, v)
+                  }}
+                />
+                <span style={{ color: 'var(--text-dim)', fontSize: 13, flexShrink: 0 }}>분</span>
+              </div>
+            )}
+          </div>
+
+          {/* ── 현재 연애 여부 ────────────────────────────────────────────────── */}
           <div style={{ marginBottom: 20 }}>
             <label className="form-label">현재 연애 여부</label>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -241,9 +361,11 @@ function InfoScreen({
             </div>
           </div>
 
+          {/* ── 가장 궁금한 것 (선택, 최대 100자) ──────────────────────────── */}
           <div style={{ marginBottom: 20 }}>
-            <label className="form-label">가장 궁금한 것 (최대 100자)</label>
-            <textarea className="form-input form-textarea"
+            <label className="form-label">가장 궁금한 것 <span style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 400 }}>(선택 · 최대 100자)</span></label>
+            <textarea
+              className="form-input form-textarea"
               placeholder="무엇이 가장 궁금하신가요?"
               value={userInfo.question}
               onChange={e => up('question', e.target.value.slice(0, 100))}
@@ -253,6 +375,7 @@ function InfoScreen({
               {userInfo.question.length}/100
             </div>
           </div>
+
         </div>
       </div>
       <BottomNav screen={1} total={8} onNext={onNext} onBack={onBack} disabled={!valid} />
@@ -285,26 +408,22 @@ function LoadingScreen() {
   )
 }
 
-// ─── Ohaeng scores from pillar data ─────────────────────────────────────────
+// ─── 오행 점수: 백엔드 계산값을 % 로 변환 (총 8점 기준) ─────────────────────
 function calcOhaengScores(saju: SajuData) {
-  const cnt: Record<string, number> = { '木': 0, '火': 0, '土': 0, '金': 0, '水': 0 }
-  const pillars = [saju.year_pillar, saju.month_pillar, saju.day_pillar, saju.hour_pillar]
-  pillars.forEach(p => {
-    cnt[p.gan_wuxing] = (cnt[p.gan_wuxing] ?? 0) + 1
-    cnt[p.zhi_wuxing] = (cnt[p.zhi_wuxing] ?? 0) + 1
-  })
+  const s = saju.ohaeng_scores
+  const toPercent = (n: number) => Math.round((n / 8) * 100)
   return {
-    wood:  Math.round((cnt['木'] / 8) * 100),
-    fire:  Math.round((cnt['火'] / 8) * 100),
-    earth: Math.round((cnt['土'] / 8) * 100),
-    metal: Math.round((cnt['金'] / 8) * 100),
-    water: Math.round((cnt['水'] / 8) * 100),
+    wood:  toPercent(s.wood),
+    fire:  toPercent(s.fire),
+    earth: toPercent(s.earth),
+    metal: toPercent(s.metal),
+    water: toPercent(s.water),
   }
 }
 
 // ─── SCREEN 3: 오행 ──────────────────────────────────────────────────────────
 function OhaengScreen({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const { sajuData, content, userInfo } = useSajuStore()
+  const { sajuData, userInfo, content, analyzing } = useSajuStore()
   const scores = sajuData ? calcOhaengScores(sajuData) : { wood: 25, fire: 25, earth: 25, metal: 25, water: 25 }
 
   const elements = [
@@ -346,13 +465,20 @@ function OhaengScreen({ onNext, onBack }: { onNext: () => void; onBack: () => vo
             ))}
           </div>
 
+          {/* 타고난 기질 — AI 분석 (백그라운드 로드) */}
           <div className="card">
-            <div className="card-title">사주 분석</div>
-            <p>{content?.ohaeng || '분석 결과를 불러오는 중...'}</p>
+            <div className="card-title">타고난 기질 · 성격</div>
+            {analyzing && !content?.personality
+              ? <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>설아가 기운을 읽고 있습니다…</p>
+              : content?.personality
+                ? <p style={{ whiteSpace: 'pre-line', lineHeight: 1.8 }}>{content.personality}</p>
+                : <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>분석 준비 중…</p>
+            }
           </div>
+
         </div>
       </div>
-      <BottomNav screen={2} total={8} onNext={onNext} onBack={onBack} />
+      <BottomNav screen={3} total={8} onNext={onNext} onBack={onBack} />
     </div>
   )
 }
@@ -432,47 +558,28 @@ function ManseryeokScreen({ onNext, onBack }: { onNext: () => void; onBack: () =
           )}
         </div>
       </div>
-      <BottomNav screen={3} total={8} onNext={onNext} onBack={onBack} />
+      <BottomNav screen={2} total={8} onNext={onNext} onBack={onBack} />
     </div>
   )
 }
 
 // ─── SCREEN 5: 올해 운세 ─────────────────────────────────────────────────────
 function YearlyScreen({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const { content, userInfo } = useSajuStore()
+  const { content, userInfo, analyzing } = useSajuStore()
   const year = new Date().getFullYear()
-  const cats = [
-    { icon: '✦', color: '#c9922a', bg: 'rgba(201,146,42,0.1)',  title: '총운',     score: 4 },
-    { icon: '♥', color: '#e05535', bg: 'rgba(224,85,53,0.1)',   title: '연애운',   score: 3 },
-    { icon: '◈', color: '#5db85d', bg: 'rgba(93,184,93,0.1)',   title: '직업·사업운', score: 4 },
-    { icon: '◉', color: '#5588e8', bg: 'rgba(85,136,232,0.1)',  title: '재물운',   score: 3 },
-    { icon: '♦', color: '#b8bcd4', bg: 'rgba(184,188,212,0.1)', title: '건강운',   score: 5 },
-  ]
   return (
     <div className="screen active">
       <Stars />
       <OracleSmall text={`${year}년 ${userInfo.name}님의 운세입니다.`} />
       <div className="scroll-inner" style={{ zIndex: 1 }}>
         <div className="content-area" style={{ paddingTop: 24 }}>
-          <div className="section-title">{year}년 올해 운세</div>
-          {cats.map(cat => (
-            <div key={cat.title} style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, background: cat.bg, color: cat.color }}>
-                  {cat.icon}
-                </div>
-                <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 700 }}>{cat.title}</div>
-                <div style={{ display: 'flex', gap: 3, marginLeft: 'auto' }}>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className={`score-dot ${i < cat.score ? 'on' : 'off'}`} />
-                  ))}
-                </div>
-              </div>
-              <div className="card" style={{ margin: 0 }}>
-                <p>{content?.yearly || '운세를 분석하는 중...'}</p>
-              </div>
-            </div>
-          ))}
+          <div className="section-title">{year}년 신년운세</div>
+          <div className="card">
+            {analyzing && !content?.yearly
+              ? <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>설아가 올해 기운을 읽고 있습니다…</p>
+              : <p style={{ whiteSpace: 'pre-line', lineHeight: 1.9 }}>{content?.yearly || '—'}</p>
+            }
+          </div>
         </div>
       </div>
       <BottomNav screen={4} total={8} onNext={onNext} onBack={onBack} />
@@ -481,9 +588,19 @@ function YearlyScreen({ onNext, onBack }: { onNext: () => void; onBack: () => vo
 }
 
 // ─── SCREEN 6: 이번 달 운세 ──────────────────────────────────────────────────
+const MONTHLY_CATS: { key: keyof MonthlyFortune; icon: string; color: string; bg: string }[] = [
+  { key: '총운',  icon: '✦', color: '#c9922a', bg: 'rgba(201,146,42,0.1)' },
+  { key: '연애운', icon: '♥', color: '#e05535', bg: 'rgba(224,85,53,0.1)'  },
+  { key: '재물운', icon: '◉', color: '#5588e8', bg: 'rgba(85,136,232,0.1)' },
+  { key: '직업운', icon: '◈', color: '#5db85d', bg: 'rgba(93,184,93,0.1)'  },
+  { key: '사업운', icon: '◆', color: '#b8bcd4', bg: 'rgba(184,188,212,0.1)'},
+]
+
 function MonthlyScreen({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const { content, userInfo } = useSajuStore()
+  const { content, analyzing } = useSajuStore()
   const month = new Date().getMonth() + 1
+  const monthly = content?.monthly   // MonthlyFortune | null
+
   return (
     <div className="screen active">
       <Stars />
@@ -491,26 +608,29 @@ function MonthlyScreen({ onNext, onBack }: { onNext: () => void; onBack: () => v
       <div className="scroll-inner" style={{ zIndex: 1 }}>
         <div className="content-area" style={{ paddingTop: 24 }}>
           <div className="section-title">{month}월 이번 달 운세</div>
-          <div className="card">
-            <div className="card-title">이달의 운세</div>
-            <p>{content?.monthly || '—'}</p>
-          </div>
-          <div className="card">
-            <div className="card-title">이달의 행운 키워드</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-              {['행운', '인연', '변화'].map(kw => (
-                <span key={kw} style={{ background: 'rgba(201,146,42,0.12)', border: '1px solid rgba(201,146,42,0.3)', borderRadius: 20, padding: '4px 14px', fontSize: 13, color: 'var(--gold-l)' }}>
-                  {kw}
-                </span>
-              ))}
+
+          {MONTHLY_CATS.map(cat => (
+            <div key={cat.key} style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 15, background: cat.bg, color: cat.color,
+                }}>
+                  {cat.icon}
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 700 }}>{cat.key}</div>
+              </div>
+              <div className="card" style={{ margin: 0 }}>
+                {analyzing && !monthly
+                  ? <p style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>설아가 읽고 있습니다…</p>
+                  : <p style={{ whiteSpace: 'pre-line', lineHeight: 1.8 }}>
+                      {monthly?.[cat.key] || '—'}
+                    </p>
+                }
+              </div>
             </div>
-          </div>
-          <div className="card">
-            <div className="card-title">이달의 조언</div>
-            <p style={{ fontStyle: 'italic', color: 'var(--gold-l)', fontSize: 15 }}>
-              {userInfo.name}님, 이달은 흐름을 믿고 나아가세요.
-            </p>
-          </div>
+          ))}
         </div>
       </div>
       <BottomNav screen={5} total={8} onNext={onNext} onBack={onBack} />
@@ -625,42 +745,48 @@ function ChatScreen({ onBack }: { onBack: () => void }) {
 }
 
 // ─── Main App ────────────────────────────────────────────────────────────────
+//
+// 화면 흐름:
+//   0 Welcome → 1 Info → 2 Loading(계산) → 3 만세력 → 4 오행(AI 동시 시작)
+//   → 5 신년운세 → 6 월운 → 7 질문답변(선택) → 8 채팅
+//
+// AI 순서: calculate 완료 직후 analyze() 시작
+//   personality → yearly → monthly(5개 병렬) → [question]
+//   각 화면은 analyzing 중 로딩 표시, 결과 도착 시 자동 갱신
+//
 const TOTAL = 8
 
 export default function App() {
   const [screen, setScreen] = useState(0)
-  const { userInfo, setUserInfo, startSession, loading, error, sajuData } = useSajuStore()
+  const { userInfo, setUserInfo, calculate, analyze, loading, error } = useSajuStore()
 
   const goTo = useCallback((n: number) => setScreen(n), [])
   const back = useCallback(() => setScreen(s => Math.max(0, s - 1)), [])
 
-  const handleInfoSubmit = async () => {
-    goTo(2)
-    await startSession()
-    goTo(3)
-  }
+  // 1단계: 정보 입력 후 → 계산 + AI 분석 동시 시작
+  const handleInfoSubmit = useCallback(async () => {
+    goTo(2)                 // 로딩 화면
+    await calculate()       // 만세력·오행 계산 (빠름, AI 없음)
+    analyze()               // AI 분석 백그라운드 시작 (await 없음)
+    goTo(3)                 // 만세력 화면으로 즉시 이동
+  }, [calculate, analyze, goTo])
 
   const next = useCallback(() => {
     if (screen === 1) {
       handleInfoSubmit()
+    } else if (screen === 6 && !useSajuStore.getState().userInfo.question.trim()) {
+      goTo(8)               // 질문 없으면 QuestionScreen 건너뜀
     } else {
       setScreen(s => Math.min(TOTAL, s + 1))
     }
-  }, [screen])
-
-  // If generateAll fails, stay on loading but show error
-  useEffect(() => {
-    if (screen === 2 && !loading && error) {
-      // stay on loading screen showing error
-    }
-  }, [screen, loading, error])
+  }, [screen, handleInfoSubmit, goTo])
 
   const screens = [
     <WelcomeScreen onNext={next} />,
     <InfoScreen userInfo={userInfo} setUserInfo={setUserInfo} onNext={next} onBack={back} />,
     <LoadingScreen />,
-    <OhaengScreen onNext={next} onBack={back} />,
     <ManseryeokScreen onNext={next} onBack={back} />,
+    <OhaengScreen onNext={next} onBack={back} />,
     <YearlyScreen onNext={next} onBack={back} />,
     <MonthlyScreen onNext={next} onBack={back} />,
     <QuestionScreen onNext={next} onBack={back} />,
@@ -669,6 +795,7 @@ export default function App() {
 
   return (
     <div className="saju-app">
+      {/* 계산 실패 시 에러 배너 */}
       {error && screen === 2 && (
         <div style={{ position: 'absolute', bottom: 40, left: 20, right: 20, background: 'rgba(139,21,53,0.3)', border: '1px solid rgba(139,21,53,0.5)', borderRadius: 12, padding: '12px 16px', zIndex: 200, fontSize: 13, color: 'var(--text-dim)', textAlign: 'center' }}>
           <div>{error}</div>

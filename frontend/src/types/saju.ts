@@ -8,6 +8,14 @@ export interface Pillar {
   sipsung: string
 }
 
+export interface OhaengScores {
+  wood:  number  // 木 count (0~8)
+  fire:  number  // 火 count
+  earth: number  // 土 count
+  metal: number  // 金 count
+  water: number  // 水 count
+}
+
 export interface SajuData {
   year_pillar:     Pillar
   month_pillar:    Pillar
@@ -19,6 +27,7 @@ export interface SajuData {
   monthly_fortune: Pillar
   daeun:           Pillar[]
   daeun_start_age: number
+  ohaeng_scores:   OhaengScores  // 백엔드 계산 (AI 없음)
 }
 
 export interface SajuAnalysisRequest {
