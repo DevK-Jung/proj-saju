@@ -25,7 +25,7 @@ from app.engine.constants import (
     YEAR_STEM_TO_MONTH_STEM_BASE,
     YIN_YANG,
 )
-from app.engine.models import Pillar, SajuData, SajuRequest
+from app.engine.models import OhaengScores, Pillar, SajuData, SajuRequest
 from app.engine.solar_terms import (
     KST_OFFSET,
     _date_to_jd,
@@ -122,6 +122,25 @@ def _calc_daeun_start_age(birth_date: date, gender: str, year_stem_idx: int) -> 
     return max(1, round(min_days / 3))
 
 
+# ─── 오행 점수 계산 ─────────────────────────────────────────────────────────────
+
+_WUXING_KR = {"木": "목", "火": "화", "土": "토", "金": "금", "水": "수"}
+
+def _calc_ohaeng_scores(pillars: list[Pillar]) -> OhaengScores:
+    """4기둥(천간 4 + 지지 4 = 총 8점) 오행 점수 집계"""
+    cnt: dict[str, int] = {"木": 0, "火": 0, "土": 0, "金": 0, "水": 0}
+    for p in pillars:
+        cnt[p.gan_wuxing] += 1
+        cnt[p.zhi_wuxing] += 1
+    return OhaengScores(
+        wood=cnt["木"],
+        fire=cnt["火"],
+        earth=cnt["土"],
+        metal=cnt["金"],
+        water=cnt["水"],
+    )
+
+
 # ─── 공개 API ──────────────────────────────────────────────────────────────────
 
 def calculate_saju(request: SajuRequest) -> SajuData:
@@ -182,6 +201,8 @@ def calculate_saju(request: SajuRequest) -> SajuData:
 
     daeun_start = _calc_daeun_start_age(calc_date, request.gender, year_gan_idx)
 
+    four_pillars = [year_pillar, month_pillar, day_pillar, hour_pillar]
+
     return SajuData(
         year_pillar=year_pillar,
         month_pillar=month_pillar,
@@ -193,4 +214,5 @@ def calculate_saju(request: SajuRequest) -> SajuData:
         monthly_fortune=monthly_fortune,
         daeun=daeun_list,
         daeun_start_age=daeun_start,
+        ohaeng_scores=_calc_ohaeng_scores(four_pillars),
     )

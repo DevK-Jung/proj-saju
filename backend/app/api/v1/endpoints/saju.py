@@ -18,6 +18,7 @@ from app.engine.models import (
     SajuAnalysisRequest,
     SajuRequest,
     FullAnalysisRequest,
+    AnalyzeRequest,
     ChatRequest,
 )
 from app.engine.calculator import calculate_saju
@@ -43,13 +44,13 @@ async def start_session(request: FullAnalysisRequest):
     9화면 사주 앱 — 전체 분석 SSE 스트림
 
     SSE 이벤트 순서:
-      event: saju_data  → 만세력 데이터 (JSON)
-      event: ohaeng     → 오행 분석 텍스트
-      event: yearly     → 올해 운세 텍스트
-      event: monthly    → 이번 달 운세 텍스트
-      event: answer     → 질문 답변 텍스트 (question 있을 때만)
-      event: done       → {"thread_id": "..."} 완료
-      event: error      → 오류 메시지
+      event: saju_data    → 만세력 데이터 (JSON)
+      event: personality  → 기질·성격 분석 텍스트
+      event: yearly       → 올해 운세 텍스트
+      event: monthly      → 이번 달 운세 (JSON dict: {총운, 연애운, 재물운, 직업운, 사업운})
+      event: answer       → 질문 답변 텍스트 (question 있을 때만)
+      event: done         → {"thread_id": "..."} 완료
+      event: error        → 오류 메시지
     """
     thread_id = str(uuid.uuid4())
 
@@ -65,7 +66,7 @@ async def start_session(request: FullAnalysisRequest):
             "name":          request.name,
             "relationship":  request.relationship,
             "question":      request.question,
-            "saju_data":     None,   # None → 분석 경로로 라우팅
+            "saju_data":     None,   # None → calculate → personality → yearly → monthly
             "messages":      [],
         }
 
@@ -76,20 +77,20 @@ async def start_session(request: FullAnalysisRequest):
                     payload = json.dumps(chunk["calculate"]["saju_data"], ensure_ascii=False)
                     yield f"event: saju_data\ndata: {payload}\n\n"
 
-                # ohaeng 노드 완료
-                elif "ohaeng" in chunk:
-                    text = chunk["ohaeng"].get("ohaeng_analysis") or ""
-                    yield f"event: ohaeng\ndata: {json.dumps(text, ensure_ascii=False)}\n\n"
+                # personality 노드 완료 → 기질·성격 분석
+                elif "personality" in chunk:
+                    text = chunk["personality"].get("personality_analysis") or ""
+                    yield f"event: personality\ndata: {json.dumps(text, ensure_ascii=False)}\n\n"
 
                 # yearly 노드 완료
                 elif "yearly" in chunk:
                     text = chunk["yearly"].get("yearly_fortune") or ""
                     yield f"event: yearly\ndata: {json.dumps(text, ensure_ascii=False)}\n\n"
 
-                # monthly 노드 완료
+                # monthly 노드 완료 → dict (5개 카테고리)
                 elif "monthly" in chunk:
-                    text = chunk["monthly"].get("monthly_fortune") or ""
-                    yield f"event: monthly\ndata: {json.dumps(text, ensure_ascii=False)}\n\n"
+                    data = chunk["monthly"].get("monthly_fortune") or {}
+                    yield f"event: monthly\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
                 # question 노드 완료 (질문 있을 때만)
                 elif "question" in chunk:
@@ -169,6 +170,72 @@ async def chat(request: ChatRequest):
     )
 
 
+# ── 2단계 AI 분석 (만세력·오행 확인 후 호출) ──────────────────────────────────
+
+@router.post("/analyze")
+async def analyze_with_saju(request: AnalyzeRequest):
+    """
+    사전 계산된 saju_data를 받아 AI 운세 분석만 실행.
+    saju_data 있음 + messages 없음 → personality → yearly → monthly → [question]
+
+    SSE 이벤트 순서:
+      event: personality → 기질·성격 분석 텍스트
+      event: yearly      → 올해 운세 텍스트
+      event: monthly     → 이번 달 운세 (JSON dict: {총운, 연애운, 재물운, 직업운, 사업운})
+      event: answer      → 질문 답변 텍스트 (question 있을 때만)
+      event: done        → {"thread_id": "..."} 완료
+      event: error       → 오류 메시지
+    """
+    thread_id = str(uuid.uuid4())
+
+    async def generate():
+        graph = get_graph()
+        config = {"configurable": {"thread_id": thread_id}}
+
+        # saju_data 있음 + messages 빈 리스트 → route_start가 "personality"로 라우팅
+        initial_state = {
+            "saju_data":     request.saju_data,
+            "name":          request.name,
+            "gender":        request.gender,
+            "birth_date":    request.birth_date,
+            "birth_time":    request.birth_time or "미상",
+            "calendar_type": request.calendar_type,
+            "relationship":  request.relationship,
+            "question":      request.question,
+            "messages":      [],
+        }
+
+        try:
+            async for chunk in graph.astream(initial_state, config):
+                if "personality" in chunk:
+                    text = chunk["personality"].get("personality_analysis") or ""
+                    yield f"event: personality\ndata: {json.dumps(text, ensure_ascii=False)}\n\n"
+
+                elif "yearly" in chunk:
+                    text = chunk["yearly"].get("yearly_fortune") or ""
+                    yield f"event: yearly\ndata: {json.dumps(text, ensure_ascii=False)}\n\n"
+
+                elif "monthly" in chunk:
+                    data = chunk["monthly"].get("monthly_fortune") or {}
+                    yield f"event: monthly\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+                elif "question" in chunk:
+                    text = chunk["question"].get("question_answer") or ""
+                    if text:
+                        yield f"event: answer\ndata: {json.dumps(text, ensure_ascii=False)}\n\n"
+
+            yield f"event: done\ndata: {json.dumps({'thread_id': thread_id})}\n\n"
+
+        except Exception as exc:
+            yield f"event: error\ndata: {json.dumps(str(exc), ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 # ── 하위 호환 엔드포인트 ───────────────────────────────────────────────────────
 
 _LEGACY_STATE = {
@@ -183,7 +250,7 @@ _LEGACY_STATE = {
 }
 
 
-@router.post("/analyze")
+@router.post("/analyze/legacy")
 async def analyze_saju(request: SajuAnalysisRequest):
     """하위 호환 — 단일 LLM 분석 응답"""
     thread_id = str(uuid.uuid4())

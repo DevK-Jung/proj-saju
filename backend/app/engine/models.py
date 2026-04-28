@@ -26,6 +26,15 @@ class Pillar(BaseModel):
     }
 
 
+class OhaengScores(BaseModel):
+    """오행 점수 — 천간 1점·지지 1점, 4기둥 합산 총 8점"""
+    wood:  int  # 木
+    fire:  int  # 火
+    earth: int  # 土
+    metal: int  # 金
+    water: int  # 水
+
+
 class SajuData(BaseModel):
     year_pillar:     Pillar
     month_pillar:    Pillar
@@ -37,6 +46,7 @@ class SajuData(BaseModel):
     monthly_fortune: Pillar
     daeun:           list[Pillar]
     daeun_start_age: int
+    ohaeng_scores:   OhaengScores   # 오행 점수 (AI 없는 순수 계산)
 
 
 class SajuRequest(BaseModel):
@@ -66,6 +76,18 @@ class FullAnalysisRequest(BaseModel):
     name:         str = Field(..., example="홍길동")
     relationship: str = Field("", example="솔로", description="솔로 / 연애중 / 기혼 / 빈칸")
     question:     str = Field("", example="올해 이직해도 될까요?", description="선택 사항")
+
+
+class AnalyzeRequest(BaseModel):
+    """사전 계산된 사주 데이터 기반 AI 분석 요청 (2단계 — 만세력·오행 확인 후 호출)"""
+    saju_data:     dict = Field(..., description="/calculate 결과 SajuData dict")
+    name:          str  = Field(..., example="홍길동")
+    gender:        str  = Field("M", example="M", description="M / F")
+    birth_date:    str  = Field("", example="1995-03-15")
+    birth_time:    str  = Field("미상", example="14:30")
+    calendar_type: str  = Field("solar", example="solar")
+    relationship:  str  = Field("", example="솔로")
+    question:      str  = Field("", example="올해 이직해도 될까요?")
 
 
 class ChatRequest(BaseModel):
