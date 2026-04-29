@@ -30,15 +30,23 @@ export interface SajuData {
   ohaeng_scores:   OhaengScores  // 백엔드 계산 (AI 없음)
 }
 
-export interface SajuAnalysisRequest {
-  birth_date:    string
-  birth_time:    string
+// ── API 요청 타입 ─────────────────────────────────────────────────────────────
+
+export interface CalculateRequest {
+  birth_date:    string        // "YYYY-MM-DD"
+  birth_time:    string        // "HH:MM" | "미상"
   gender:        'M' | 'F'
   calendar_type: 'solar' | 'lunar'
-  question_type: '팔자' | '세운' | '월운' | '특정운' | '자유질문'
-  question?:     string
-  fortune_type?: '연애' | '직업' | '재물' | '건강'
 }
 
-export type QuestionType = SajuAnalysisRequest['question_type']
-export type FortuneType  = NonNullable<SajuAnalysisRequest['fortune_type']>
+export interface AnalyzeRequest extends CalculateRequest {
+  saju_data:    SajuData      // /calculate 결과
+  name:         string
+  relationship: '솔로' | '연애중' | '기혼' | ''
+  question:     string
+}
+
+export interface ChatRequest {
+  thread_id: string
+  message:   string
+}
