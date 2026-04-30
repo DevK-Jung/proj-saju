@@ -4,7 +4,7 @@ from sajupy import calculate_saju as _sajupy_calc, lunar_to_solar as _sajupy_lun
 from app.engine.constants import (
     TIANGAN, TIANGAN_KR, DIZHI, DIZHI_KR,
     WUXING_TIANGAN, WUXING_DIZHI,
-    YIN_YANG, SIPSUNG_MAP,
+    YIN_YANG, SIPSUNG_MAP, JIZANGGAN,
     JIEQI_LONGITUDES,
     CITY_LONGITUDE, DEFAULT_LONGITUDE,
 )
@@ -25,9 +25,21 @@ def _calc_sipsung(day_gan: str, target_gan: str) -> str:
 # Pillar 생성
 # ─────────────────────────────────────────
 def _pillar_from_chars(gan: str, zhi: str, day_gan: str = "") -> Pillar:
-    """天干·地支 문자를 받아 Pillar 모델로 변환."""
+    """天干·地支 문자를 받아 Pillar 모델로 변환.
+    일주(gan == day_gan)는 지지 지장간 본기 기준으로 십성 계산.
+    """
     g_idx = TIANGAN.index(gan)
     z_idx = DIZHI.index(zhi)
+
+    if not day_gan:
+        sipsung = ""
+    elif gan == day_gan:
+        # 일주: 일간 자신이므로 지지 지장간 본기(마지막)로 십성 계산
+        bon_gi = JIZANGGAN[zhi][-1]
+        sipsung = _calc_sipsung(day_gan, bon_gi)
+    else:
+        sipsung = _calc_sipsung(day_gan, gan)
+
     return Pillar(
         gan=gan,
         zhi=zhi,
@@ -35,7 +47,7 @@ def _pillar_from_chars(gan: str, zhi: str, day_gan: str = "") -> Pillar:
         zhi_kr=DIZHI_KR[z_idx],
         gan_wuxing=WUXING_TIANGAN[gan],
         zhi_wuxing=WUXING_DIZHI[zhi],
-        sipsung=_calc_sipsung(day_gan, gan) if day_gan else "",
+        sipsung=sipsung,
     )
 
 
@@ -148,10 +160,10 @@ def calculate_saju(req: SajuRequest) -> SajuData:
     hour_gan  = raw["hour_stem"]
     hour_zhi  = raw["hour_branch"]
 
-    # 3. Pillar 객체 생성 (일주는 sipsung 없음)
+    # 3. Pillar 객체 생성
     yp = _pillar_from_chars(year_gan,  year_zhi,  day_gan)
     mp = _pillar_from_chars(month_gan, month_zhi, day_gan)
-    dp = _pillar_from_chars(day_gan,   day_zhi)
+    dp = _pillar_from_chars(day_gan,   day_zhi,   day_gan)  # 일주: 지지 지장간 본기로 십성
     hp = _pillar_from_chars(hour_gan,  hour_zhi,  day_gan)
 
     # 4. 올해 세운·이번 달 월운
