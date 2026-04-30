@@ -37,6 +37,7 @@ export interface CalculateRequest {
   birth_time:    string        // "HH:MM" | "미상"
   gender:        'M' | 'F'
   calendar_type: 'solar' | 'lunar'
+  city:          string | null // 출생지 도시명 (진태양시 보정), 모르면 null
 }
 
 export interface AnalyzeRequest extends CalculateRequest {

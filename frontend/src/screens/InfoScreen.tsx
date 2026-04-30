@@ -40,15 +40,14 @@ export function InfoScreen({
   }
 
   // ── 태어난 시간 ─────────────────────────────────────────────────────────────
-  const [timeUnknown, setTimeUnknown] = useState(false)
-  const [ampm,        setAmpm]        = useState<'오전' | '오후'>('오전')
-  const [timeHour,    setTimeHour]    = useState('')
-  const [timeMinute,  setTimeMinute]  = useState('')
+  const [ampm,       setAmpm]       = useState<'오전' | '오후'>('오전')
+  const [timeHour,   setTimeHour]   = useState('')
+  const [timeMinute, setTimeMinute] = useState('')
   const minuteRef = useRef<HTMLInputElement>(null)
 
   const syncTime = useCallback(
-    (unknown: boolean, ap: string, h: string, m: string) => {
-      if (unknown || !h) { setUserInfo({ birthTime: '' }); return }
+    (ap: string, h: string, m: string) => {
+      if (!h) { setUserInfo({ birthTime: '' }); return }
       let hour = parseInt(h, 10) || 0
       if (ap === '오후' && hour !== 12) hour += 12
       if (ap === '오전' && hour === 12) hour = 0
@@ -59,7 +58,7 @@ export function InfoScreen({
     [setUserInfo]
   )
 
-  const valid = !!(userInfo.name && userInfo.gender && userInfo.birthYear && userInfo.birthMonth && userInfo.birthDay)
+  const valid = !!(userInfo.name && userInfo.gender && userInfo.birthYear && userInfo.birthMonth && userInfo.birthDay && userInfo.birthTime)
 
   return (
     <div className="screen active" style={{ flexDirection: 'column' }}>
@@ -113,80 +112,87 @@ export function InfoScreen({
             </div>
           </div>
 
-          {/* ── 태어난 시간 ──────────────────────────────────────────────────── */}
+          {/* ── 태어난 시간 (필수) ───────────────────────────────────────────── */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <label className="form-label" style={{ margin: 0 }}>태어난 시간</label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-dim)', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={timeUnknown}
-                  style={{ width: 15, height: 15, accentColor: 'var(--gold)', cursor: 'pointer' }}
-                  onChange={e => {
-                    setTimeUnknown(e.target.checked)
-                    syncTime(e.target.checked, ampm, timeHour, timeMinute)
-                  }}
-                />
-                모름
-              </label>
-            </div>
-
-            {!timeUnknown && (
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <div style={{
-                  display: 'flex', flexShrink: 0, overflow: 'hidden',
-                  border: '1px solid var(--border)', borderRadius: 8,
-                }}>
-                  {(['오전', '오후'] as const).map(ap => (
-                    <button
-                      key={ap}
-                      type="button"
-                      onClick={() => { setAmpm(ap); syncTime(false, ap, timeHour, timeMinute) }}
-                      style={{
-                        padding: '10px 13px', fontSize: 13, border: 'none', cursor: 'pointer',
-                        background: ampm === ap ? 'rgba(201,146,42,0.2)' : 'transparent',
-                        color: ampm === ap ? 'var(--gold)' : 'var(--text-dim)',
-                        transition: 'background 0.2s',
-                      }}
-                    >
-                      {ap}
-                    </button>
-                  ))}
-                </div>
-
-                <input
-                  className="form-input"
-                  type="tel"
-                  placeholder="00"
-                  style={{ flex: 1, textAlign: 'center' }}
-                  value={timeHour}
-                  maxLength={2}
-                  onChange={e => {
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 2)
-                    setTimeHour(v)
-                    syncTime(false, ampm, v, timeMinute)
-                    if (v.length === 2) minuteRef.current?.focus()
-                  }}
-                />
-                <span style={{ color: 'var(--text-dim)', fontSize: 13, flexShrink: 0 }}>시</span>
-
-                <input
-                  ref={minuteRef}
-                  className="form-input"
-                  type="tel"
-                  placeholder="00"
-                  style={{ flex: 1, textAlign: 'center' }}
-                  value={timeMinute}
-                  maxLength={2}
-                  onChange={e => {
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 2)
-                    setTimeMinute(v)
-                    syncTime(false, ampm, timeHour, v)
-                  }}
-                />
-                <span style={{ color: 'var(--text-dim)', fontSize: 13, flexShrink: 0 }}>분</span>
+            <label className="form-label" style={{ marginBottom: 10 }}>태어난 시간</label>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <div style={{
+                display: 'flex', flexShrink: 0, overflow: 'hidden',
+                border: '1px solid var(--border)', borderRadius: 8,
+              }}>
+                {(['오전', '오후'] as const).map(ap => (
+                  <button
+                    key={ap}
+                    type="button"
+                    onClick={() => { setAmpm(ap); syncTime(ap, timeHour, timeMinute) }}
+                    style={{
+                      padding: '10px 13px', fontSize: 13, border: 'none', cursor: 'pointer',
+                      background: ampm === ap ? 'rgba(201,146,42,0.2)' : 'transparent',
+                      color: ampm === ap ? 'var(--gold)' : 'var(--text-dim)',
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    {ap}
+                  </button>
+                ))}
               </div>
-            )}
+
+              <input
+                className="form-input"
+                type="tel"
+                placeholder="00"
+                style={{ flex: 1, textAlign: 'center' }}
+                value={timeHour}
+                maxLength={2}
+                onChange={e => {
+                  const v = e.target.value.replace(/\D/g, '').slice(0, 2)
+                  setTimeHour(v)
+                  syncTime(ampm, v, timeMinute)
+                  if (v.length === 2) minuteRef.current?.focus()
+                }}
+              />
+              <span style={{ color: 'var(--text-dim)', fontSize: 13, flexShrink: 0 }}>시</span>
+
+              <input
+                ref={minuteRef}
+                className="form-input"
+                type="tel"
+                placeholder="00"
+                style={{ flex: 1, textAlign: 'center' }}
+                value={timeMinute}
+                maxLength={2}
+                onChange={e => {
+                  const v = e.target.value.replace(/\D/g, '').slice(0, 2)
+                  setTimeMinute(v)
+                  syncTime(ampm, timeHour, v)
+                }}
+              />
+              <span style={{ color: 'var(--text-dim)', fontSize: 13, flexShrink: 0 }}>분</span>
+            </div>
+          </div>
+
+          {/* ── 출생지 (진태양시 보정용) ─────────────────────────────────────── */}
+          <div style={{ marginBottom: 20 }}>
+            <label className="form-label">출생지</label>
+            <select
+              className="form-input"
+              value={userInfo.city ?? ''}
+              onChange={e => up('city', e.target.value === '' ? null : e.target.value)}
+              style={{ cursor: 'pointer' }}
+            >
+              <option value="">모름 (선택 안 함)</option>
+              <option value="Seoul">서울</option>
+              <option value="Busan">부산</option>
+              <option value="Incheon">인천</option>
+              <option value="Daegu">대구</option>
+              <option value="Daejeon">대전</option>
+              <option value="Gwangju">광주</option>
+              <option value="Suwon">수원</option>
+              <option value="Ulsan">울산</option>
+              <option value="Jeonju">전주</option>
+              <option value="Changwon">창원</option>
+              <option value="Jeju">제주</option>
+            </select>
           </div>
 
           {/* ── 연애 여부 ─────────────────────────────────────────────────────── */}

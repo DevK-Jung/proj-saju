@@ -9,10 +9,11 @@ export interface UserInfo {
   birthYear:    string
   birthMonth:   string
   birthDay:     string
-  birthTime:    string    // "HH:MM" (오전·오후 변환 후) | "" (모름)
+  birthTime:    string         // "HH:MM" (오전·오후 변환 후)
   calendar:     '양력' | '음력'
   relationship: '솔로' | '연애중' | '기혼' | ''
-  question:     string    // 선택 사항
+  question:     string         // 선택 사항
+  city:         string | null  // 출생지 도시명, 모르면 null
 }
 
 export interface MonthlyFortune {
@@ -163,7 +164,7 @@ interface SajuStore {
 
 const defaultUserInfo: UserInfo = {
   name: '', gender: '', birthYear: '', birthMonth: '', birthDay: '',
-  birthTime: '', calendar: '양력', relationship: '', question: '',
+  birthTime: '', calendar: '양력', relationship: '', question: '', city: null,
 }
 
 export const useSajuStore = create<SajuStore>((set, get) => ({
@@ -191,6 +192,7 @@ export const useSajuStore = create<SajuStore>((set, get) => ({
       name:          ui.name,
       relationship:  ui.relationship,
       question:      ui.question,
+      city:          ui.city,
     }
 
     try {
