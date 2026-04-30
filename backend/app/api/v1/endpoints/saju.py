@@ -63,6 +63,7 @@ async def start_session(request: FullAnalysisRequest):
             "birth_time":    request.birth_time or "미상",
             "gender":        request.gender,
             "calendar_type": request.calendar_type,
+            "city":          request.city,
             "name":          request.name,
             "relationship":  request.relationship,
             "question":      request.question,

@@ -15,6 +15,7 @@ class SajuState(TypedDict, total=False):
     birth_time:    str           # "HH:MM" | "미상"
     gender:        str           # "M" | "F"
     calendar_type: str           # "solar" | "lunar"
+    city:          str           # 출생지 도시명 (진태양시 보정)
     name:          str
     relationship:  str           # "솔로" | "연애중" | "기혼" | ""
     question:      str           # 선택

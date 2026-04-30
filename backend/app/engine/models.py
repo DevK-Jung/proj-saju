@@ -27,12 +27,14 @@ class Pillar(BaseModel):
 
 
 class OhaengScores(BaseModel):
-    """오행 점수 — 천간 1점·지지 1점, 4기둥 합산 총 8점"""
-    wood:  int  # 木
-    fire:  int  # 火
-    earth: int  # 土
-    metal: int  # 金
-    water: int  # 水
+    """오행 점수 — 천간 1점·지지(지장간 가중) 합산.
+    지장간 반영으로 소수점이 생길 수 있음 (예: 木=2.5).
+    """
+    wood:  float  # 木
+    fire:  float  # 火
+    earth: float  # 土
+    metal: float  # 金
+    water: float  # 水
 
 
 class SajuData(BaseModel):
@@ -54,6 +56,7 @@ class SajuRequest(BaseModel):
     birth_time:    str = Field(..., example="14:30")
     gender:        str = Field(..., example="M", description="M (남성) / F (여성)")
     calendar_type: str = Field(..., example="solar", description="solar (양력) / lunar (음력)")
+    city:          str = Field("Seoul", example="Incheon", description="출생지 도시명 (진태양시 보정에 사용)")
 
 
 class SajuAnalysisRequest(SajuRequest):
@@ -73,6 +76,7 @@ class FullAnalysisRequest(BaseModel):
     birth_time:    str = Field("미상", example="14:30", description="HH:MM 또는 '미상'")
     gender:        str = Field(..., example="M", description="M / F")
     calendar_type: str = Field("solar", example="solar", description="solar / lunar")
+    city:          str = Field("Seoul", example="Seoul", description="출생지 도시명 (진태양시 보정에 사용)")
     name:         str = Field(..., example="홍길동")
     relationship: str = Field("", example="솔로", description="솔로 / 연애중 / 기혼 / 빈칸")
     question:     str = Field("", example="올해 이직해도 될까요?", description="선택 사항")

@@ -11,6 +11,7 @@ async def calculate_node(state: SajuState) -> dict:
         birth_time=state.get("birth_time", "미상"),
         gender=state["gender"],
         calendar_type=state.get("calendar_type", "solar"),
+        city=state.get("city", "Seoul"),
     )
     saju_data = calculate_saju(req)
     return {"saju_data": saju_data.model_dump()}
