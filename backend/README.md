@@ -91,78 +91,107 @@ uv run python scripts/setup_data.py --only-ingest  # 적재만 실행
   "birth_date": "1995-03-15",
   "birth_time": "14:30",
   "gender": "M",
-  "calendar_type": "solar"
+  "calendar_type": "solar",
+  "city": "Seoul"
 }
 ```
+
+- `calendar_type`: `"solar"` (양력) | `"lunar"` (음력)
+- `city`: 출생지 도시명. 진태양시 보정에 사용. 기본값 `"Seoul"`. 한글(`"서울"`, `"인천"` 등)도 지원.
 
 **Response**
 ```json
 {
   "data": {
-    "year":  { "stem": "乙", "branch": "亥", "sipsung": "..." },
-    "month": { "stem": "己", "branch": "卯", "sipsung": "..." },
-    "day":   { "stem": "丙", "branch": "申", "sipsung": "..." },
-    "hour":  { "stem": "壬", "branch": "午", "sipsung": "..." }
+    "year_pillar":  { "gan": "乙", "zhi": "亥", "gan_kr": "을", "zhi_kr": "해", "gan_wuxing": "木", "zhi_wuxing": "水", "sipsung": "정인" },
+    "month_pillar": { ... },
+    "day_pillar":   { ... },
+    "hour_pillar":  { ... },
+    "daeun": [ ... ],
+    "daeun_start_age": 6,
+    "ohaeng_scores": { "wood": 2, "fire": 1, "earth": 2, "metal": 1, "water": 2 }
   }
 }
 ```
 
-### POST `/saju/analyze`
+### POST `/saju/session`
 
-사주 계산 + RAG 검색 + LLM 해석.
+전체 분석 SSE 스트림 (9화면 앱용).
 
-**Request** — `/calculate`와 동일 + 추가 필드
+**Request**
 ```json
 {
   "birth_date": "1995-03-15",
   "birth_time": "14:30",
   "gender": "M",
   "calendar_type": "solar",
-  "question_type": "팔자",
-  "question": "재물운이 궁금합니다"
+  "city": "Seoul",
+  "name": "홍길동",
+  "relationship": "솔로",
+  "question": "올해 이직해도 될까요?"
 }
 ```
 
-**Response**
+**SSE 이벤트 순서**
+```
+event: saju_data    → 만세력 JSON
+event: personality  → 기질·성격 분석 텍스트
+event: yearly       → 올해 운세 텍스트
+event: monthly      → { 총운, 연애운, 재물운, 직업운, 사업운 }
+event: answer       → 질문 답변 (question 있을 때만)
+event: done         → { "thread_id": "..." }
+```
+
+### POST `/saju/chat`
+
+기존 세션에 채팅 메시지 전송 (SSE 토큰 스트림).
+
+**Request**
 ```json
 {
-  "saju_data": { ... },
-  "answer": "..."
+  "thread_id": "...",
+  "message": "내년 운세도 알려줘"
 }
-```
-
-### POST `/saju/analyze/stream`
-
-`/analyze`와 동일한 요청, SSE 스트리밍으로 응답.
-
-```
-data: 안녕하세요\n\n
-data: 갑자일주는\n\n
-data: [DONE]\n\n
 ```
 
 ## LangGraph Agent
 
 ```
-START → calculate → rag → interpret → END
+START → route_start
+          ├─ (saju_data 없음)    → calculate → personality → yearly → monthly → [question] → END
+          ├─ (saju_data + 메시지 없음) → personality → yearly → monthly → [question] → END
+          └─ (saju_data + 메시지)  → chat → END
 ```
 
 | 노드 | 역할 |
 |------|------|
-| `calculate` | ephem 기반 사주팔자 계산 |
-| `rag` | pgvector 하이브리드 검색 (벡터 유사도 + 오행 필터) |
-| `interpret` | OpenAI GPT로 최종 해석 생성 |
-
-RAG 노드는 DB 미연결 시 graceful fallback (빈 컨텍스트로 LLM 해석 진행).
+| `calculate` | sajupy 기반 사주팔자 계산 (진태양시 보정 포함) |
+| `personality` | 기질·성격·직업 분석 |
+| `yearly` | 올해 세운 분석 |
+| `monthly` | 이번 달 월운 분석 |
+| `question` | 선택 질문 답변 |
+| `chat` | 채팅 응답 (체크포인트 복원) |
 
 ## 계산 엔진
 
-`ephem` 라이브러리로 태양 황경을 계산해 절기를 산출합니다.
+만세력(년·월·일·시주)은 [sajupy](https://github.com/0ssw1/sajupy) 라이브러리의 사전 계산된 CSV 만세력을 사용합니다.
 
-- 절기: 태양 황경 이분법 탐색 (`_find_solar_term_jd`)
-- 일진: Julian Day Number 공식 `(JDN + 40) % 60`
+- **진태양시 보정**: 출생지 도시명 기준 경도로 표준시(KST)와의 차이를 분 단위 보정
+- **절기**: pyswisseph 태양 황경 이분법 탐색 (대운 시작 나이 계산에 사용)
+- **대운**: 월주 기준 순행/역행 8주 계산, 시작 나이 = 출생일~가장 가까운 절기 일수 ÷ 3 반올림
 
 검증 케이스:
 ```bash
 uv run python scripts/verify_calculator.py
+uv run --extra dev python -m pytest tests/test_calculator.py -v
 ```
+
+## 오픈소스 라이센스
+
+이 프로젝트는 다음 오픈소스 라이브러리를 사용합니다.
+
+| 라이브러리 | 라이센스 | 저작권 |
+|---|---|---|
+| [sajupy](https://github.com/0ssw1/sajupy) | MIT | Copyright (c) 2025 0ssw1 |
+
+MIT License 전문은 [sajupy 저장소](https://github.com/0ssw1/sajupy/blob/main/LICENSE)에서 확인할 수 있습니다.
