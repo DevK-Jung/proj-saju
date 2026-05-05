@@ -82,7 +82,7 @@ export function ManseryeokScreen({ onNext, onBack }: { onNext: () => void; onBac
           )}
         </div>
       </div>
-      <BottomNav screen={2} total={8} onNext={onNext} onBack={onBack} />
+      <BottomNav screen={2} total={9} onNext={onNext} onBack={onBack} />
     </div>
   )
 }

@@ -6,6 +6,7 @@ from app.core.database import get_db_session
 from app.core.config import settings
 
 _llm: ChatOpenAI | None = None
+_structured_llm: ChatOpenAI | None = None
 
 
 def get_llm() -> ChatOpenAI:
@@ -18,6 +19,19 @@ def get_llm() -> ChatOpenAI:
             api_key=settings.OPENAI_API_KEY,
         )
     return _llm
+
+
+def get_structured_llm() -> ChatOpenAI:
+    """structured output 전용 — streaming 없이 안정적으로 JSON 파싱"""
+    global _structured_llm
+    if _structured_llm is None:
+        _structured_llm = ChatOpenAI(
+            model=settings.OPENAI_CHAT_MODEL,
+            temperature=0.7,
+            streaming=False,
+            api_key=settings.OPENAI_API_KEY,
+        )
+    return _structured_llm
 
 
 async def rag(query: str, elements: list[str], contexts: list[str], top_k: int = 4) -> str:

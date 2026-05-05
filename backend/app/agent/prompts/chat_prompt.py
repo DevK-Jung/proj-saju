@@ -2,7 +2,7 @@
 
 from datetime import date
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from .base import ORACLE_PERSONA, format_saju
+from .base import ORACLE_CHAT_PERSONA, format_saju
 
 CHAT_TEMPLATE = ChatPromptTemplate.from_messages([
     ("system", "{system_content}"),
@@ -38,15 +38,19 @@ def build_chat_input(
     today = date.today()
     answer_section = f"\n[질문 답변]\n{question_answer}" if question_answer else ""
 
+    # 기질·운세는 핵심 요약만 (전문을 반복하면 LLM이 매번 비슷한 말을 시작함)
+    personality_summary = (personality_analysis or "")[:200].rstrip() + ("..." if len(personality_analysis or "") > 200 else "")
+    yearly_summary = (yearly_fortune or "")[:150].rstrip() + ("..." if len(yearly_fortune or "") > 150 else "")
+
     system_content = (
-        f"{ORACLE_PERSONA}\n\n"
-        f"[{name}님 사주 컨텍스트 — {today.year}년]\n"
-        f"사주: {format_saju(saju)}\n\n"
-        f"타고난 기질·성격: {personality_analysis}\n\n"
-        f"올해 운세: {yearly_fortune}\n\n"
-        f"이번 달 운세:\n{_format_monthly(monthly_fortune)}"
+        f"{ORACLE_CHAT_PERSONA}\n\n"
+        f"[{name}님 사주 — {today.year}년]\n"
+        f"{format_saju(saju)}\n\n"
+        f"기질 요약: {personality_summary}\n"
+        f"올해 운세 요약: {yearly_summary}\n"
+        f"이번 달 운세: {_format_monthly(monthly_fortune)}"
         f"{answer_section}\n\n"
-        f"[추가 참고 지식]\n{rag_text or '(관련 사주 지식 없음)'}"
+        f"[참고 사주 지식]\n{rag_text or '(없음)'}"
     )
 
     return {

@@ -48,6 +48,7 @@ async def start_session(request: FullAnalysisRequest):
       event: personality  → 기질·성격 분석 텍스트
       event: yearly       → 올해 운세 텍스트
       event: monthly      → 이번 달 운세 (JSON dict: {총운, 연애운, 재물운, 직업운, 사업운})
+      event: timeline     → 4개월 타임라인 (JSON list: [{year, month, month_label, month_pillar, summary, highlight, highlight_content}, ...])
       event: answer       → 질문 답변 텍스트 (question 있을 때만)
       event: done         → {"thread_id": "..."} 완료
       event: error        → 오류 메시지
@@ -92,6 +93,11 @@ async def start_session(request: FullAnalysisRequest):
                 elif "monthly" in chunk:
                     data = chunk["monthly"].get("monthly_fortune") or {}
                     yield f"event: monthly\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+                # timeline 노드 완료 → 4개월 타임라인 리스트
+                elif "timeline" in chunk:
+                    data = chunk["timeline"].get("timeline_fortune") or []
+                    yield f"event: timeline\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
                 # question 노드 완료 (질문 있을 때만)
                 elif "question" in chunk:
@@ -145,8 +151,16 @@ async def chat(request: ChatRequest):
                 # LLM 스트리밍 토큰
                 if kind == "on_chat_model_stream":
                     chunk = event["data"].get("chunk")
-                    if chunk and hasattr(chunk, "content") and chunk.content:
-                        yield f"data: {chunk.content}\n\n"
+                    if not chunk:
+                        continue
+                    content = getattr(chunk, "content", None)
+                    if isinstance(content, str) and content:
+                        yield f"data: {content}\n\n"
+                    elif isinstance(content, list):
+                        for part in content:
+                            text = part.get("text", "") if isinstance(part, dict) else (part if isinstance(part, str) else "")
+                            if text:
+                                yield f"data: {text}\n\n"
 
                 # 그래프 실행 완료
                 elif kind == "on_chain_end" and event.get("name") == "LangGraph":
@@ -183,6 +197,7 @@ async def analyze_with_saju(request: AnalyzeRequest):
       event: personality → 기질·성격 분석 텍스트
       event: yearly      → 올해 운세 텍스트
       event: monthly     → 이번 달 운세 (JSON dict: {총운, 연애운, 재물운, 직업운, 사업운})
+      event: timeline    → 4개월 타임라인 (JSON list)
       event: answer      → 질문 답변 텍스트 (question 있을 때만)
       event: done        → {"thread_id": "..."} 완료
       event: error       → 오류 메시지
@@ -219,6 +234,10 @@ async def analyze_with_saju(request: AnalyzeRequest):
                 elif "monthly" in chunk:
                     data = chunk["monthly"].get("monthly_fortune") or {}
                     yield f"event: monthly\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+                elif "timeline" in chunk:
+                    data = chunk["timeline"].get("timeline_fortune") or []
+                    yield f"event: timeline\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
                 elif "question" in chunk:
                     text = chunk["question"].get("question_answer") or ""

@@ -45,7 +45,7 @@ export function MonthlyScreen({ onNext, onBack }: { onNext: () => void; onBack: 
           ))}
         </div>
       </div>
-      <BottomNav screen={5} total={8} onNext={onNext} onBack={onBack} />
+      <BottomNav screen={5} total={9} onNext={onNext} onBack={onBack} />
     </div>
   )
 }

@@ -70,7 +70,7 @@ export function OhaengScreen({ onNext, onBack }: { onNext: () => void; onBack: (
           </div>
         </div>
       </div>
-      <BottomNav screen={3} total={8} onNext={onNext} onBack={onBack} />
+      <BottomNav screen={3} total={9} onNext={onNext} onBack={onBack} />
     </div>
   )
 }

@@ -29,6 +29,12 @@ def _monthly_template(fortune_type: str, instruction: str) -> ChatPromptTemplate
 [참고 사주 지식]
 {{rag_text}}
 
+금지 표현 (절대 사용 금지):
+- "OO월에는", "이번 달에는" 등 월·시기로 문장을 시작하는 것
+- "OO의 기운이 넘쳐", "OO 기운이 강해" 등 오행 기운 묘사 문장
+- 오행(수·목·화·토·금) 이름을 직접 나열하는 것
+- 간지(갑자·을축 등)를 본문에 직접 언급하는 것
+
 {instruction}"""),
     ])
 

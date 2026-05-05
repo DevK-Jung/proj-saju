@@ -51,3 +51,13 @@ export interface ChatRequest {
   thread_id: string
   message:   string
 }
+
+export interface TimelineItem {
+  year:              number
+  month:             number
+  month_label:       string
+  month_pillar:      string
+  summary:           string
+  highlight:         '연애운' | '재물운' | '직업운' | '사업운'
+  highlight_content: string
+}

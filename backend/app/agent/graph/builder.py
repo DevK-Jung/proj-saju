@@ -1,7 +1,7 @@
 """사주 AI LangGraph — PostgreSQL 체크포인트 기반
 
 그래프 흐름:
-  [로직] calculate → [AI] personality → [AI] yearly → [AI] monthly → [AI?] question → END
+  [로직] calculate → [AI] personality → [AI] yearly → [AI] monthly → [AI] timeline → [AI?] question → END
   [채팅]           → chat → END
 """
 
@@ -16,9 +16,10 @@ from ..nodes.calculate_node import calculate_node
 from ..nodes.personality_node import personality_node
 from ..nodes.yearly_node import yearly_node
 from ..nodes.monthly_node import monthly_node
+from ..nodes.timeline_node import timeline_node
 from ..nodes.question_node import question_node
 from ..nodes.chat_node import chat_node
-from ..router.routes import route_start, route_after_monthly
+from ..router.routes import route_start, route_after_timeline
 
 _pool: AsyncConnectionPool | None = None
 _saju_graph = None
@@ -31,6 +32,7 @@ def _build_graph() -> StateGraph:
     g.add_node("personality", personality_node)
     g.add_node("yearly",      yearly_node)
     g.add_node("monthly",     monthly_node)
+    g.add_node("timeline",    timeline_node)
     g.add_node("question",    question_node)
     g.add_node("chat",        chat_node)
 
@@ -45,7 +47,8 @@ def _build_graph() -> StateGraph:
     g.add_edge("calculate",   "personality")
     g.add_edge("personality", "yearly")
     g.add_edge("yearly",      "monthly")
-    g.add_conditional_edges("monthly", route_after_monthly, {
+    g.add_edge("monthly",     "timeline")
+    g.add_conditional_edges("timeline", route_after_timeline, {
         "question":  "question",
         "__end__":   END,
     })

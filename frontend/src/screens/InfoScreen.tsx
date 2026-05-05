@@ -222,7 +222,7 @@ export function InfoScreen({
 
         </div>
       </div>
-      <BottomNav screen={1} total={8} onNext={onNext} onBack={onBack} disabled={!valid} />
+      <BottomNav screen={1} total={9} onNext={onNext} onBack={onBack} disabled={!valid} />
     </div>
   )
 }

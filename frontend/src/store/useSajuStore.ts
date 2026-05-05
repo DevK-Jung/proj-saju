@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { SajuData } from '../types/saju'
+import { SajuData, TimelineItem } from '../types/saju'
 
 const API_BASE = '/api/v1'
 
@@ -38,6 +38,7 @@ export type LoadingStep =
   | 'personality'   // 기질 분석 중
   | 'yearly'        // 신년운세 분석 중
   | 'monthly'       // 이번달 운세 분석 중
+  | 'timeline'      // 월운 타임라인 분석 중
   | 'question'      // 질문 답변 중
   | 'done'
 
@@ -63,6 +64,7 @@ interface SSECallbacks {
   onPersonality?: (text: string) => void
   onYearly?:      (text: string) => void
   onMonthly?:     (data: MonthlyFortune) => void
+  onTimeline?:    (data: TimelineItem[]) => void
   onAnswer?:      (text: string) => void
   onDone?:        (threadId: string) => void
   onError?:       (msg: string) => void
@@ -126,6 +128,9 @@ async function parseSessionSSE(response: Response, callbacks: SSECallbacks) {
                     case 'monthly':
                         callbacks.onMonthly?.(parsedData);
                         break;
+                    case 'timeline':
+                        callbacks.onTimeline?.(parsedData);
+                        break;
                     case 'answer':
                         callbacks.onAnswer?.(parsedData);
                         break;
@@ -152,6 +157,7 @@ interface SajuStore {
   threadId:    string | null
   sajuData:    SajuData | null
   content:     AnalysisContent | null
+  timeline:    TimelineItem[] | null
   loading:     boolean        // 세션 전체 로딩 중
   loadingStep: LoadingStep    // 로딩 단계 (LoadingScreen 진행 표시용)
   error:       string | null
@@ -172,6 +178,7 @@ export const useSajuStore = create<SajuStore>((set, get) => ({
   threadId:    null,
   sajuData:    null,
   content:     null,
+  timeline:    null,
   loading:     false,
   loadingStep: 'idle',
   error:       null,
@@ -182,7 +189,7 @@ export const useSajuStore = create<SajuStore>((set, get) => ({
   startSession: async () => {
     const ui = get().userInfo
     set({ loading: true, loadingStep: 'calculating', error: null,
-          sajuData: null, content: null, threadId: null })
+          sajuData: null, content: null, timeline: null, threadId: null })
 
     const body = {
       birth_date:    toBirthDate(ui),
@@ -219,7 +226,10 @@ export const useSajuStore = create<SajuStore>((set, get) => ({
         },
         onMonthly:     (data) => {
           partial.monthly = data
-          set({ content: { ...partial }, loadingStep: 'question' })
+          set({ content: { ...partial }, loadingStep: 'timeline' })
+        },
+        onTimeline:    (data) => {
+          set({ timeline: data, loadingStep: 'question' })
         },
         onAnswer:      (text) => {
           partial.answer = text
@@ -271,7 +281,7 @@ export const useSajuStore = create<SajuStore>((set, get) => ({
   },
 
   reset: () => set({
-    sajuData: null, content: null, error: null,
+    sajuData: null, content: null, timeline: null, error: null,
     threadId: null, loading: false, loadingStep: 'idle',
     userInfo: defaultUserInfo,
   }),

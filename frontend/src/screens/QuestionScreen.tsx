@@ -24,7 +24,7 @@ export function QuestionScreen({ onNext, onBack }: { onNext: () => void; onBack:
           </div>
         </div>
       </div>
-      <BottomNav screen={6} total={8} onNext={onNext} onBack={onBack} nextLabel="채팅으로 더 묻기" />
+      <BottomNav screen={7} total={9} onNext={onNext} onBack={onBack} nextLabel="채팅으로 더 묻기" />
     </div>
   )
 }

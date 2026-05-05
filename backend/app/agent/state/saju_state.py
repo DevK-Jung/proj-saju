@@ -25,6 +25,7 @@ class SajuState(TypedDict, total=False):
     personality_analysis: Optional[str]   # 기질·성격·장단점·직업·부족오행 채우기
     yearly_fortune:       Optional[str]   # 신년운세 (총운/좋은점/주의점/조언)
     monthly_fortune:      Optional[dict]  # {"총운","연애운","재물운","직업운","사업운"}
+    timeline_fortune:     Optional[list]  # [{year,month,month_pillar,summary,highlight,highlight_content}, ...]
     question_answer:      Optional[str]   # 질문 답변 (없으면 "")
 
     # ── 채팅 이력 ────────────────────────────────────────────────────────────────

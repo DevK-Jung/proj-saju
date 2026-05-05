@@ -2,15 +2,16 @@ import { Stars } from '../components/Stars'
 import { useSajuStore, LoadingStep } from '../store/useSajuStore'
 
 const LOADING_STEPS: { step: LoadingStep; label: string }[] = [
-  { step: 'calculating', label: '사주팔자·오행 계산 중' },
-  { step: 'personality', label: '타고난 기질 분석 중'  },
-  { step: 'yearly',      label: '신년운세 분석 중'     },
-  { step: 'monthly',     label: '이번달 운세 분석 중'  },
-  { step: 'question',    label: '질문 답변 생성 중'    },
-  { step: 'done',        label: '완료'                },
+  { step: 'calculating', label: '사주팔자·오행 계산 중'  },
+  { step: 'personality', label: '타고난 기질 분석 중'    },
+  { step: 'yearly',      label: '신년운세 분석 중'       },
+  { step: 'monthly',     label: '이번달 운세 분석 중'    },
+  { step: 'timeline',    label: '월운 타임라인 분석 중'  },
+  { step: 'question',    label: '질문 답변 생성 중'      },
+  { step: 'done',        label: '완료'                  },
 ]
 
-const STEP_ORDER: LoadingStep[] = ['calculating', 'personality', 'yearly', 'monthly', 'question', 'done']
+const STEP_ORDER: LoadingStep[] = ['calculating', 'personality', 'yearly', 'monthly', 'timeline', 'question', 'done']
 
 export function LoadingScreen() {
   const { loadingStep } = useSajuStore()

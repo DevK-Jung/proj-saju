@@ -16,6 +16,6 @@ def route_start(state: SajuState) -> str:
     return "personality"
 
 
-def route_after_monthly(state: SajuState) -> str:
+def route_after_timeline(state: SajuState) -> str:
     """질문 유무로 question 노드 여부 결정"""
     return "question" if (state.get("question") or "").strip() else "__end__"

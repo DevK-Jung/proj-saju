@@ -8,13 +8,14 @@ import { ManseryeokScreen } from './screens/ManseryeokScreen'
 import { OhaengScreen }     from './screens/OhaengScreen'
 import { YearlyScreen }     from './screens/YearlyScreen'
 import { MonthlyScreen }    from './screens/MonthlyScreen'
+import { TimelineScreen }   from './screens/TimelineScreen'
 import { QuestionScreen }   from './screens/QuestionScreen'
 import { ChatScreen }       from './screens/ChatScreen'
 
 // 화면 흐름:
 //   0 Welcome → 1 Info → 2 Loading(세션 SSE) → 3 만세력
-//   → 4 오행 → 5 신년운세 → 6 월운 → 7 질문답변(선택) → 8 채팅
-const TOTAL = 8
+//   → 4 오행 → 5 신년운세 → 6 월운 → 7 타임라인 → 8 질문답변(선택) → 9 채팅
+const TOTAL = 9
 
 export default function App() {
   const [screen, setScreen] = useState(0)
@@ -32,8 +33,8 @@ export default function App() {
   const next = useCallback(() => {
     if (screen === 1) {
       handleInfoSubmit()
-    } else if (screen === 6 && !useSajuStore.getState().userInfo.question.trim()) {
-      goTo(8)   // 질문 없으면 QuestionScreen 건너뜀
+    } else if (screen === 7 && !useSajuStore.getState().userInfo.question.trim()) {
+      goTo(9)   // 질문 없으면 QuestionScreen 건너뜀
     } else {
       setScreen(s => Math.min(TOTAL, s + 1))
     }
@@ -47,6 +48,7 @@ export default function App() {
     <OhaengScreen onNext={next} onBack={back} />,
     <YearlyScreen onNext={next} onBack={back} />,
     <MonthlyScreen onNext={next} onBack={back} />,
+    <TimelineScreen onNext={next} onBack={back} />,
     <QuestionScreen onNext={next} onBack={back} />,
     <ChatScreen onBack={() => goTo(0)} />,
   ]
